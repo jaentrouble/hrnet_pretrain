@@ -143,6 +143,7 @@ def create_train_dataset(
         label_dict, 
         img_size, 
         batch_size, 
+        buffer_size=1000,
         val_data=False):
     autotune = tf.data.experimental.AUTOTUNE
     if val_data:
@@ -167,7 +168,7 @@ def create_train_dataset(
             tf.TensorShape([])
         ),
     )
-    dataset = dataset.shuffle(min(len(data),1000))
+    dataset = dataset.shuffle(buffer_size)
     dataset = dataset.batch(batch_size, drop_remainder=True)
     dataset = dataset.prefetch(autotune)
     dataset = dataset.repeat()
