@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 from functools import partial
 import numpy as np
 import cv2
+from pathlib import Path
+import os
 
 class ClassifierModel(keras.Model):
     """ClassifierModel
@@ -40,7 +42,7 @@ class ClassifierModel(keras.Model):
         return self.logits(inputs, training=training)
 
 class AugGenerator():
-    """An iterable generator that makes data
+    """An iterable generator that makes augmented ImageNet image data
 
     NOTE: 
         Every img is reshaped to img_size
@@ -51,20 +53,29 @@ class AugGenerator():
         shape : (HEIGHT, WIDTH, 3)
     Y : np.array, dtype= np.float32
     """
-    def __init__(self, img_path, label_dict, img_size):
+    def __init__(self, img_dir, img_names, label_dict, img_size):
         """ 
         arguments
         ---------
-        img_path : list
-            list of image path
+        img_dir : str
+            path to the image directory
+        img_names : list
+            list of image names. img_dir/img_name should be the full path
+            image name should be 
         label_dict : dict
             dictionary mapping from ID -> category number
         img_size : tuple
             Desired output image size
             IMPORTANT : (WIDTH, HEIGHT)
         """
-        self.img_path = img_path
+        self.img_dir = img_dir
+        self.img_names = img_names
         self.label_dict = label_dict
+        
+        # Find label numbers prior to save time
+        self.img_labels = \
+            [self.label_dict[n.split('_')[0]] for n in self.img_names]
+
         self.n = len(data)
         self.output_size = img_size
         self.aug = A.Compose([
@@ -82,9 +93,6 @@ class AugGenerator():
             A.Resize(img_size[0], img_size[1]),
         ],
         )
-        for datum in data:
-            datum['mask_min'] = np.min(datum['mask'], axis=1)
-            datum['mask_max'] = np.max(datum['mask'], axis=1) + 1
 
     def __iter__(self):
         return self
@@ -94,71 +102,48 @@ class AugGenerator():
 
     def __next__(self):
         idx = random.randrange(0,self.n)
-        datum = self.data[idx]
-        image = self.image[datum['image']]
-        x_min, y_min = datum['mask_min']
-        x_max, y_max = datum['mask_max']
 
-        crop_min = (max(0, x_min-random.randrange(5,30)),
-                    max(0, y_min-random.randrange(5,30)))
-        crop_max = (min(datum['size'][0],x_max+random.randrange(5,30)),
-                    min(datum['size'][1],y_max+random.randrange(5,30)))
-        new_mask = np.zeros(np.subtract(crop_max, crop_min), dtype=np.float32)
-        xx, yy = np.array(datum['mask'],dtype=np.int32)
-        m_xx = xx - crop_min[0]
-        m_yy = yy - crop_min[1]
-        new_mask[m_xx,m_yy] = 1
-
-        if np.any(np.not_equal(image.shape[:2], np.flip(datum['size']))):
-            row_ratio = image.shape[0] / datum['size'][1]
-            col_ratio = image.shape[1] / datum['size'][0]
-            cx_min = int(col_ratio*crop_min[0])
-            cy_min = int(row_ratio*crop_min[1])
-            
-            cx_max = int(col_ratio*crop_max[0])
-            cy_max = int(row_ratio*crop_max[1])
-
-            cropped_image = np.swapaxes(image[cy_min:cy_max,cx_min:cx_max],0,1)
-        else:
-            cropped_image = np.swapaxes(
-                image[crop_min[1]:crop_max[1],crop_min[0]:crop_max[0]],
-                0, 
-                1,
-            )
+        image_name = self.img_names[idx]
+        label = self.img_labels[idx]
+        full_path = os.path.join(self.img_dir,image_name)
+        image = cv2.cvtColor(cv2.imread(full_path,cv2.IMREAD_COLOR),
+                                        cv2.COLOR_BGR2RGB)
         
         distorted = self.aug(
-            image=cropped_image,
-            mask =new_mask
+            image=image,
         )
 
-        return distorted['image'], distorted['mask']
+        return distorted['image'], label
 
 class ValGenerator(AugGenerator):
     """Same as AugGenerator, but without augmentation.
+    Only resizes the image
     """
-    def __init__(self, img, data, img_size):
+    def __init__(self, img_dir, img_names, label_dict, img_size):
         """ 
         arguments
         ---------
-        img : list
-            list of images, in the original size (height, width, 3)
-        data : list of dict
-            Each dict has :
-                'image' : index of the image. The index should match with img
-                'mask' : [xx, yy]
-                        IMPORTANT : (WIDTH, HEIGHT)
-                'box' : [[xmin, ymin], [xmax,ymax]]
-                'size' : the size of the image that the data was created with
-                        IMPORTANT : (WIDTH, HEIGHT)
+        img_dir : str
+            path to the image directory
+        img_names : list
+            list of image names. img_dir/img_name should be the full path
+            image name should be 
+        label_dict : dict
+            dictionary mapping from ID -> category number
         img_size : tuple
             Desired output image size
-            The axes will be swapped to match pygame.
             IMPORTANT : (WIDTH, HEIGHT)
         """
-        super().__init__(img, data, img_size)
+        super().__init__(img_dir, img_names, label_dict, img_size)
         self.aug = A.Resize(img_size[0], img_size[1])
 
-def create_train_dataset(img, data, img_size, batch_size, val_data=False):
+def create_train_dataset(
+        img_dir, 
+        img_names, 
+        label_dict, 
+        img_size, 
+        batch_size, 
+        val_data=False):
     autotune = tf.data.experimental.AUTOTUNE
     if val_data:
         generator = ValGenerator(img, data, img_size)
@@ -166,10 +151,10 @@ def create_train_dataset(img, data, img_size, batch_size, val_data=False):
         generator = AugGenerator(img, data, img_size)
     dataset = tf.data.Dataset.from_generator(
         generator,
-        output_types=(tf.uint8, tf.float32),
+        output_types=(tf.uint8, tf.int64),
         output_shapes=(
             tf.TensorShape([img_size[0],img_size[1],3]), 
-            tf.TensorShape(img_size)
+            tf.TensorShape([])
         ),
     )
     dataset = dataset.shuffle(min(len(data),1000))
