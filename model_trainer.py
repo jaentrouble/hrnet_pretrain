@@ -91,6 +91,7 @@ class AugGenerator():
             A.VerticalFlip(p=0.5),
             A.RandomRotate90(p=1),
             A.Resize(img_size[0], img_size[1]),
+            A.Cutout(8,img_size[0]//16,img_size[1]//16)
         ],
         )
 
