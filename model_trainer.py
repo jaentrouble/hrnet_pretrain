@@ -66,7 +66,7 @@ class AugGenerator():
             dictionary mapping from ID -> category number
         img_size : tuple
             Desired output image size
-            IMPORTANT : (WIDTH, HEIGHT)
+            IMPORTANT : (HEIGHT, WIDTH)
         """
         self.img_dir = img_dir
         self.img_names = img_names
@@ -90,7 +90,7 @@ class AugGenerator():
             A.InvertImg(p=0.5),
             A.VerticalFlip(p=0.5),
             A.RandomRotate90(p=1),
-            A.Resize(img_size[1], img_size[0]),
+            A.Resize(img_size[0], img_size[1]),
         ],
         )
 
