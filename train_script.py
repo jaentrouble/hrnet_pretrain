@@ -30,16 +30,18 @@ if args.mem_growth:
         except RuntimeError as e:
             print(e)
 
+with open('meta.json','r') as f:
+    label_dict = json.load(f)
+
+with open('id_to_name.json','r') as f:
+    id_to_name = json.load(f)
+
+with open('val_label.json','r') as f:
+    val_labels = json.load(f)
+
+
 train_dir = '/home/jaentrouble/data/imagenet/train'
-
-
-test_num = len(data) // 10
-# To make sure data are chosen randomly between data groups
-random.shuffle(data)
-
-data_train = data[:-2*test_num]
-data_val = data[-2*test_num:-test_num]
-data_test = data[-test_num:]
+val_dir = '/home/jaentrouble/data/imagenet/valid'
 
 model_f = getattr(backbone_models, args.model)
 lr_f = getattr(model_lr, args.lr)
@@ -53,10 +55,12 @@ kwargs['lr_f'] = lr_f
 kwargs['name'] = name
 kwargs['epochs'] = epochs
 kwargs['batch_size'] = 32
-kwargs['train_data'] = data_train
-kwargs['val_data'] = data_val
-kwargs['img'] = img
-kwargs['img_size'] = (200,200)
+kwargs['train_dir'] = train_dir
+kwargs['label_dict'] = label_dict
+kwargs['val_dir'] = val_dir
+kwargs['val_labels'] = val_labels
+kwargs['id_to_name'] = id_to_name
+kwargs['img_size'] = (240,320)
 kwargs['mixed_float'] = mixed_float
 kwargs['notebook'] = False
 

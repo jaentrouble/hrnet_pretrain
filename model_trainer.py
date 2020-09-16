@@ -193,6 +193,7 @@ def imagenet_val_dataset(
     dataset = dataset.shuffle(buffer_size)
     dataset = dataset.batch(batch_size, drop_remainder=True)
     dataset = dataset.prefetch(autotune)
+    dataset = dataset.repeat()
 
     return dataset
 
@@ -215,7 +216,7 @@ def get_model(model_f):
         optimizer='adam',
         loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         metrics=[
-            keras.metrics.SparseCategoricalAccuracy(threshold=0.1),
+            keras.metrics.SparseCategoricalAccuracy(),
         ]
     )
     return test_model
@@ -268,9 +269,11 @@ def run_training(
         name, 
         epochs, 
         batch_size, 
-        train_data,
-        val_data,
-        img,
+        train_dir,
+        label_dict,
+        val_dir,
+        val_labels,
+        id_to_name,
         img_size,
         mixed_float = True,
         notebook = True,
@@ -286,12 +289,12 @@ def run_training(
 
     inputs = keras.Input((img_size[0],img_size[1],3))
     mymodel = ClassifierModel(inputs, model_f)
-    loss = keras.losses.BinaryCrossentropy(from_logits=True)
+    loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     mymodel.compile(
         optimizer='adam',
         loss=loss,
         metrics=[
-            keras.metrics.BinaryAccuracy(threshold=0.5),
+            keras.metrics.SparseCategoricalAccuracy(name='accuracy'),
         ]
     )
 
@@ -312,20 +315,33 @@ def run_training(
     )
 
     if notebook:
-        tqdm_callback = TqdmNotebookCallback(metrics=['loss', 'binary_accuracy'],
+        tqdm_callback = TqdmNotebookCallback(metrics=['loss','accuracy'],
                                             leave_inner=False)
     else:
         tqdm_callback = TqdmCallback()
 
-    train_ds = create_train_dataset(img, train_data, img_size,batch_size)
-    val_ds = create_train_dataset(img, val_data, img_size,batch_size,True)
+    train_names = os.listdir(train_dir)
 
-    image_callback = ValFigCallback(val_ds, logdir)
+    train_ds = create_train_dataset(
+        train_dir,
+        train_names,
+        label_dict,
+        img_size,
+        batch_size,
+    )
+    val_ds = imagenet_val_dataset(
+        val_dir,
+        val_labels,
+        img_size,
+        batch_size,
+    )
+
+    image_callback = ValFigCallback(val_ds, logdir, id_to_name)
 
     mymodel.fit(
         x=train_ds,
         epochs=epochs,
-        steps_per_epoch=len(train_data)//batch_size,
+        steps_per_epoch=len(train_names)//batch_size,
         callbacks=[
             tensorboard_callback,
             lr_callback,
@@ -335,7 +351,7 @@ def run_training(
         ],
         verbose=0,
         validation_data=val_ds,
-        validation_steps=10,
+        validation_steps=100,
     )
 
 
