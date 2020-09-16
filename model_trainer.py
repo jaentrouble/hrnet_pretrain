@@ -195,11 +195,11 @@ def get_model(model_f):
     return test_model
 
 class ValFigCallback(keras.callbacks.Callback):
-    def __init__(self, val_ds, logdir, labels):
+    def __init__(self, val_ds, logdir, label_names):
         super().__init__()
         self.val_ds = val_ds
         self.filewriter = tf.summary.create_file_writer(logdir+'/val_image')
-        self.labels = labels
+        self.label_names = label_names
 
     def plot_to_image(self, figure):
         """Converts the matplotlib plot specified by 'figure' to a PNG image and
@@ -228,7 +228,7 @@ class ValFigCallback(keras.callbacks.Callback):
             ax = fig.add_subplot(3,1,i)
             img = sample_x[i]
             ax.imshow(img)
-            ax.title.set_text(labels[np.argmax(predict[i])])
+            ax.title.set_text(self.label_names[np.argmax(predict[i])])
         return fig
 
     def on_epoch_end(self, epoch, logs=None):
