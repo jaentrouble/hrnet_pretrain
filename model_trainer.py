@@ -176,6 +176,31 @@ def create_train_dataset(
 
     return dataset
 
+def imagenet_val_dataset(
+        img_dir, 
+        true_labels, 
+        img_size,
+        batch_size,
+        buffer_size=1000,
+    ):
+    autotune = tf.data.experimental.AUTOTUNE
+    
+    img_full = [os.path.join(img_dir,n) for n in os.listdir(img_dir)]
+
+    dataset = tf.data.Dataset.from_tensor_slices([img_full,true_labels])
+
+    dataset = dataset.map(partial(parse_image,img_size=img_size))
+    dataset = dataset.shuffle(buffer_size)
+    dataset = dataset.batch(batch_size, drop_remainder=True)
+    dataset = dataset.prefetch(autotune)
+
+    return dataset
+
+def parse_image(filename, label, img_size=None):
+    image = tf.io.read_file(filename)
+    image = tf.image.decode_jpeg(image)
+    image = tf.image.resize(image, img_size)
+    return image, label
 
 def get_model(model_f):
     """
