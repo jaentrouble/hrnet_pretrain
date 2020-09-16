@@ -186,6 +186,7 @@ def imagenet_val_dataset(
     autotune = tf.data.experimental.AUTOTUNE
 
     img_full = [os.path.join(img_dir,n) for n in os.listdir(img_dir)]
+    img_full = sorted(img_full)
 
     dataset = tf.data.Dataset.from_tensor_slices((img_full,true_labels))
 
