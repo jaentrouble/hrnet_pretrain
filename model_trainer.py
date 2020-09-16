@@ -200,6 +200,7 @@ def parse_image(filename, label, img_size=None):
     image = tf.io.read_file(filename)
     image = tf.image.decode_jpeg(image,channels=3)
     image = tf.image.resize(image, img_size)
+    image = tf.cast(image,tf.uint8)
     return image, label
 
 def get_model(model_f):
