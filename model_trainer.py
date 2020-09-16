@@ -76,7 +76,7 @@ class AugGenerator():
         self.img_labels = \
             [self.label_dict[n.split('_')[0]] for n in self.img_names]
 
-        self.n = len(data)
+        self.n = len(img_names)
         self.output_size = img_size
         self.aug = A.Compose([
             A.OneOf([
