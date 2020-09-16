@@ -184,10 +184,10 @@ def imagenet_val_dataset(
         buffer_size=1000,
     ):
     autotune = tf.data.experimental.AUTOTUNE
-    
+
     img_full = [os.path.join(img_dir,n) for n in os.listdir(img_dir)]
 
-    dataset = tf.data.Dataset.from_tensor_slices([img_full,true_labels])
+    dataset = tf.data.Dataset.from_tensor_slices((img_full,true_labels))
 
     dataset = dataset.map(partial(parse_image,img_size=img_size))
     dataset = dataset.shuffle(buffer_size)
