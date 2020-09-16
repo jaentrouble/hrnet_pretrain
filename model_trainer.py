@@ -341,7 +341,8 @@ def run_training(
     mymodel.fit(
         x=train_ds,
         epochs=epochs,
-        steps_per_epoch=len(train_names)//batch_size,
+        # steps_per_epoch=len(train_names)//batch_size,
+        steps_per_epoch=30,
         callbacks=[
             tensorboard_callback,
             lr_callback,
