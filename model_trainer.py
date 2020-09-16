@@ -10,8 +10,17 @@ import io
 import matplotlib.pyplot as plt
 from functools import partial
 import numpy as np
+import cv2
 
-class AdiposeModel(keras.Model):
+class ClassifierModel(keras.Model):
+    """ClassifierModel
+    Predicts logits.
+    Takes raw input in uint8 dtype.
+    
+    Output
+    ------
+    logits : tf.Tensor
+    """
     def __init__(self, inputs, model_function):
         """
         Because of numerical stability, softmax layer should be
@@ -28,51 +37,34 @@ class AdiposeModel(keras.Model):
         
     def call(self, inputs, training=None):
         casted = tf.cast(inputs, tf.float32) / 255.0
-        if training:
-            return self.logits(inputs, training=training)
-        return tf.math.sigmoid(self.logits(inputs, training=training))
+        return self.logits(inputs, training=training)
 
 class AugGenerator():
     """An iterable generator that makes data
 
     NOTE: 
         Every img is reshaped to img_size
-    NOTE: 
-        The position value is like pygame. (width, height),
-        which does not match with common image order (height,width)
 
-        Image input is expected to be the shape of (height, width),
-        i.e. the transformation to match two is handled in here automatically
-    NOTE: 
-        THE OUTPUT IMAGE WILL BE (WIDTH, HEIGHT)
-        It is because pygame has shape (width, height)
     return
     ------
     X : np.array, dtype= np.uint8
-        shape : (WIDTH, HEIGHT, 3)
+        shape : (HEIGHT, WIDTH, 3)
     Y : np.array, dtype= np.float32
     """
-    def __init__(self, img, data, img_size):
+    def __init__(self, img_path, label_dict, img_size):
         """ 
         arguments
         ---------
-        img : list
-            list of images, in the original size (height, width, 3)
-        data : list of dict
-            Each dict has :
-                'image' : index of the image. The index should match with img
-                'mask' : [xx, yy]
-                        IMPORTANT : (WIDTH, HEIGHT)
-                'box' : [[xmin, ymin], [xmax,ymax]]
-                'size' : the size of the image that the data was created with
-                        IMPORTANT : (WIDTH, HEIGHT)
+        img_path : list
+            list of image path
+        label_dict : dict
+            dictionary mapping from ID -> category number
         img_size : tuple
             Desired output image size
-            The axes will be swapped to match pygame.
             IMPORTANT : (WIDTH, HEIGHT)
         """
-        self.image = img
-        self.data = data
+        self.img_path = img_path
+        self.label_dict = label_dict
         self.n = len(data)
         self.output_size = img_size
         self.aug = A.Compose([
@@ -195,21 +187,22 @@ def get_model(model_f):
     # policy = mixed_precision.Policy('mixed_float16')
     # mixed_precision.set_policy(policy)
     inputs = keras.Input((200,200,3))
-    test_model = AdiposeModel(inputs, model_f)
+    test_model = ClassifierModel(inputs, model_f)
     test_model.compile(
         optimizer='adam',
-        loss=keras.losses.BinaryCrossentropy(from_logits=True),
+        loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         metrics=[
-            keras.metrics.BinaryAccuracy(threshold=0.1),
+            keras.metrics.SparseCategoricalAccuracy(threshold=0.1),
         ]
     )
     return test_model
 
 class ValFigCallback(keras.callbacks.Callback):
-    def __init__(self, val_ds, logdir):
+    def __init__(self, val_ds, logdir, labels):
         super().__init__()
         self.val_ds = val_ds
         self.filewriter = tf.summary.create_file_writer(logdir+'/val_image')
+        self.labels = labels
 
     def plot_to_image(self, figure):
         """Converts the matplotlib plot specified by 'figure' to a PNG image and
@@ -235,15 +228,10 @@ class ValFigCallback(keras.callbacks.Callback):
         predict = self.model(sample_x, training=False).numpy()
         fig = plt.figure()
         for i in range(3):
-            ax = fig.add_subplot(3,3,3*i+1)
+            ax = fig.add_subplot(3,1,i)
             img = sample_x[i]
             ax.imshow(img)
-            ax = fig.add_subplot(3,3,3*i+2)
-            true_mask = sample_y[i]
-            ax.imshow(true_mask, cmap='binary')
-            ax = fig.add_subplot(3,3,3*i+3)
-            p = predict[i]
-            ax.imshow(p, cmap='binary')
+            ax.title.set_text(labels[np.argmax(predict[i])])
         return fig
 
     def on_epoch_end(self, epoch, logs=None):
@@ -273,8 +261,8 @@ def run_training(
     
     st = time.time()
 
-    inputs = keras.Input((200,200,3))
-    mymodel = AdiposeModel(inputs, model_f)
+    inputs = keras.Input((img_size[0],img_size[1],3))
+    mymodel = ClassifierModel(inputs, model_f)
     loss = keras.losses.BinaryCrossentropy(from_logits=True)
     mymodel.compile(
         optimizer='adam',
