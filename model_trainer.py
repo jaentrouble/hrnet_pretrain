@@ -204,13 +204,13 @@ def parse_image(filename, label, img_size=None):
     image = tf.cast(image,tf.uint8)
     return image, label
 
-def get_model(model_f):
+def get_model(model_f, img_size):
     """
     To get model only and load weights.
     """
     # policy = mixed_precision.Policy('mixed_float16')
     # mixed_precision.set_policy(policy)
-    inputs = keras.Input((200,200,3))
+    inputs = keras.Input((img_size[0],img_size[1],3))
     test_model = ClassifierModel(inputs, model_f)
     test_model.compile(
         optimizer='adam',
@@ -250,7 +250,7 @@ class ValFigCallback(keras.callbacks.Callback):
         sample_x = sample[0]
         sample_y = sample[1]
         predict = self.model(sample_x, training=False).numpy()
-        fig = plt.figure()
+        fig = plt.figure(figsize=(15,15))
         for i in range(5):
             ax = fig.add_subplot(5,1,i+1)
             img = sample_x[i]
