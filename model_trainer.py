@@ -146,9 +146,19 @@ def create_train_dataset(
         val_data=False):
     autotune = tf.data.experimental.AUTOTUNE
     if val_data:
-        generator = ValGenerator(img, data, img_size)
+        generator = ValGenerator(
+            img_dir,
+            img_names,
+            label_dict,
+            img_size,
+        )
     else:
-        generator = AugGenerator(img, data, img_size)
+        generator = AugGenerator(
+            img_dir,
+            img_names,
+            label_dict,
+            img_size,
+        )
     dataset = tf.data.Dataset.from_generator(
         generator,
         output_types=(tf.uint8, tf.int64),
