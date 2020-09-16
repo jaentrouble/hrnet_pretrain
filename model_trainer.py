@@ -251,8 +251,8 @@ class ValFigCallback(keras.callbacks.Callback):
         sample_y = sample[1]
         predict = self.model(sample_x, training=False).numpy()
         fig = plt.figure()
-        for i in range(3):
-            ax = fig.add_subplot(3,1,i)
+        for i in range(5):
+            ax = fig.add_subplot(5,1,i+1)
             img = sample_x[i]
             ax.imshow(img)
             ax.title.set_text(self.label_names[np.argmax(predict[i])])
