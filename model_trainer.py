@@ -292,6 +292,7 @@ def run_training(
     mymodel = ClassifierModel(inputs, model_f)
     if load_model_path != None:
         mymodel.load_weights(load_model_path)
+        print('loaded from : ' + load_model_path)
     loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     mymodel.compile(
         optimizer='adam',
