@@ -69,6 +69,16 @@ def lr_step6(epoch, lr):
             lr = lr * 0.95
     return lr
 
+def lr_fast_decay(epoch, lr):
+    if epoch <= 3 :
+        lr = 0.005
+    elif epoch <= 7:
+        lr = 1e-4
+    else:
+        if epoch % 3 ==0:
+            lr = lr * 0.95
+    return lr
+
 def lr_mul_inv(epoch, lr):
     return 0.01 / (epoch+1)
 
