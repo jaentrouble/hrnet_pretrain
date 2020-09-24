@@ -277,6 +277,7 @@ def run_training(
         img_size,
         mixed_float = True,
         notebook = True,
+        load_model_path = None,
     ):
     """
     val_data : (X_val, Y_val) tuple
@@ -289,6 +290,8 @@ def run_training(
 
     inputs = keras.Input((img_size[0],img_size[1],3))
     mymodel = ClassifierModel(inputs, model_f)
+    if load_model_path != None:
+        mymodel.load_weights(load_model_path)
     loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     mymodel.compile(
         optimizer='adam',

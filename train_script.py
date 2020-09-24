@@ -19,6 +19,7 @@ parser.add_argument('-mf','--mixedfloat', dest='mixed_float',
                     action='store_true',default=False)
 parser.add_argument('-mg','--memorygrow', dest='mem_growth',
                     action='store_true',default=False)
+parser.add_argument('--load',dest='load', default=False)
 args = parser.parse_args()
 
 if args.mem_growth:
@@ -48,6 +49,7 @@ lr_f = getattr(model_lr, args.lr)
 name = args.name
 epochs = int(args.epochs)
 mixed_float = args.mixed_float
+load_model_path = args.load
 
 kwargs = {}
 kwargs['model_f'] = model_f
@@ -63,5 +65,6 @@ kwargs['id_to_name'] = id_to_name
 kwargs['img_size'] = (240,320)
 kwargs['mixed_float'] = mixed_float
 kwargs['notebook'] = False
+kwargs['load_model_path'] = load_model_path
 
 run_training(**kwargs)
