@@ -278,6 +278,7 @@ def run_training(
         mixed_float = True,
         notebook = True,
         load_model_path = None,
+        profile = False,
     ):
     """
     val_data : (X_val, Y_val) tuple
@@ -303,12 +304,20 @@ def run_training(
     )
 
     logdir = 'logs/fit/' + name
-    tensorboard_callback = tf.keras.callbacks.TensorBoard(
-        log_dir=logdir,
-        histogram_freq=1,
-        profile_batch='3,5',
-        update_freq='epoch'
-    )
+    if profile:
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(
+            log_dir=logdir,
+            histogram_freq=1,
+            profile_batch='3,5',
+            update_freq='epoch'
+        )
+    else :
+        tensorboard_callback = tf.keras.callbacks.TensorBoard(
+            log_dir=logdir,
+            histogram_freq=1,
+            profile_batch=0,
+            update_freq='epoch'
+        )
     lr_callback = keras.callbacks.LearningRateScheduler(lr_f, verbose=1)
 
     savedir = 'savedmodels/' + name + '/{epoch}'
