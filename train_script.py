@@ -20,7 +20,7 @@ parser.add_argument('-mf','--mixedfloat', dest='mixed_float',
 parser.add_argument('-mg','--memorygrow', dest='mem_growth',
                     action='store_true',default=False)
 parser.add_argument('-ml','--memorylimit', dest='mem_limit',
-                    ,default=False)
+                    default=False)
 parser.add_argument('-pf','--profile', dest='profile',
                     action='store_true',default=False)
 parser.add_argument('--load',dest='load', default=False)
