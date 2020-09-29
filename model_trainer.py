@@ -291,7 +291,7 @@ def run_training(
 
     inputs = keras.Input((img_size[0],img_size[1],3))
     mymodel = ClassifierModel(inputs, model_f)
-    if load_model_path != None:
+    if load_model_path:
         mymodel.load_weights(load_model_path)
         print('loaded from : ' + load_model_path)
     loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
